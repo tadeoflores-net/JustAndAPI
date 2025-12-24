@@ -1,0 +1,86 @@
+---
+
+## Stack utilizado
+
+* **ASP.NET Core (.NET)**
+* **C#**
+* Logging nativo con `Microsoft.Extensions.Logging`
+
+---
+
+## Cómo correr el API
+
+### Requisitos
+
+* .NET SDK instalado 8.0
+
+### Pasos
+
+1. Clonar el repositorio
+2. Restaurar dependencias:
+
+   ```bash
+   dotnet restore
+   ```
+3. Compilar el proyecto:
+
+   ```bash
+   dotnet build
+   ```
+4. Ejecutar la API:
+
+   ```bash
+   dotnet run
+   ```
+
+La API se levanta en entorno local y no requiere dependencias externas reales para funcionar.
+
+---
+
+## Funcionamiento general
+
+* La API expone endpoints que delegan la lógica a **servicios internos**.
+* Las operaciones críticas están encapsuladas en clases de servicio.
+* Se simulan fallos de proveedores externos para probar:
+
+  * Manejo de errores
+  * Logs
+  * Estabilidad del sistema
+
+---
+
+## Decisiones técnicas
+
+### 1. Separación de responsabilidades
+
+* **Controllers**: Exponen endpoints y manejan requests/responses
+* **Services**: Contienen la lógica de negocio
+
+Esto facilita el mantenimiento y la lectura del código en un contexto legacy.
+
+### 2. Logging básico pero efectivo
+
+* Uso de `ILogger<T>` nativo de .NET
+* Logs en puntos clave:
+
+  * Inicio de operaciones críticas
+  * Errores de servicios externos
+  * Excepciones
+
+---
+
+## Riesgos identificados
+
+1. **Dependencia futura de proveedores externos reales**
+
+   * Posibles caídas o respuestas inesperadas
+
+2. **Logs no persistentes**
+
+   * Actualmente solo en consola
+   * En un entorno productivo se requeriría centralización
+
+3. **Falta de mecanismos de resiliencia**
+
+   * No hay retry
+   * No hay circuit breaker
