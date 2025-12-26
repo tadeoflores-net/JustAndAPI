@@ -7,8 +7,12 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Registro del servicio
-builder.Services.AddScoped<PaymentService>();
+builder.Services.AddHttpClient<PaymentService>(client =>
+{
+    client.BaseAddress = new Uri("http://localhost:8080");
+    client.Timeout = TimeSpan.FromSeconds(6);
+});
+
 
 var app = builder.Build();
 

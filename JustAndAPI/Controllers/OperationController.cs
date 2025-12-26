@@ -26,7 +26,6 @@ namespace JustAndAPI.Controllers
             {
                 _logger.LogInformation("Received operation request");
 
-                // ID Validación (Porque es operacion critica)
                 if (request == null ||
                     string.IsNullOrWhiteSpace(request.OperationId) ||
                     string.IsNullOrWhiteSpace(request.CustomerId) ||
@@ -41,10 +40,9 @@ namespace JustAndAPI.Controllers
 
                 try
                 {
-                    // Simular operación crítica
+                    //Simular operación crítica
                     await _paymentService.ProcessPaymentAsync(
-                        request.OperationId,
-                        request.Amount
+                        request
                     );
 
                     return Ok(new
