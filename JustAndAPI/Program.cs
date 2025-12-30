@@ -7,10 +7,23 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// CORS para Angular
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngular",
+        policy =>
+        {
+            policy
+                .WithOrigins("http://localhost:4200")
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        });
+});
+
 builder.Services.AddHttpClient<PaymentService>(client =>
 {
     client.BaseAddress = new Uri("http://localhost:8080");
-    client.Timeout = TimeSpan.FromSeconds(6);
+    client.Timeout = TimeSpan.FromSeconds(3);
 });
 
 
@@ -22,6 +35,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+
+app.UseCors("AllowAngular");
 
 app.UseHttpsRedirection();
 

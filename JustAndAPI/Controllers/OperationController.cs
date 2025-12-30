@@ -1,67 +1,106 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using JustAndAPI.Services.OperationsApi.Services;
+using JustAndAPI.Models;
 
-
-namespace JustAndAPI.Controllers
+namespace JustAndAPI.Controllers.OperationsApi.Controllers
 {
-    namespace OperationsApi.Controllers
+    [ApiController]
+    [Route("api/[controller]")]
+    public class OperationsController : ControllerBase
     {
-        [ApiController]
-        [Route("api/[controller]")]
-        public class OperationsController : ControllerBase
-        {
-            private readonly ILogger<OperationsController> _logger;
-            private readonly PaymentService _paymentService;
+        private readonly ILogger<OperationsController> _logger;
+        private readonly PaymentService _paymentService;
 
-            public OperationsController(
-                ILogger<OperationsController> logger,
-                PaymentService paymentService)
+        public OperationsController(
+            ILogger<OperationsController> logger,
+            PaymentService paymentService)
+        {
+            _logger = logger;
+            _paymentService = paymentService;
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateOperation(
+            [FromBody] OperationRequest request)
+        {
+            _logger.LogInformation("Received operation request");
+
+            // 1️⃣ Validación
+            if (request == null ||
+                string.IsNullOrWhiteSpace(request.OperationId) ||
+                string.IsNullOrWhiteSpace(request.CustomerId) ||
+                request.Amount <= 0)
             {
-                _logger = logger;
-                _paymentService = paymentService;
+                _logger.LogWarning("Invalid operation request received");
+
+                return BadRequest(new
+                {
+                    error = "Invalid request data"
+                });
             }
 
-            [HttpPost]
-            public async Task<IActionResult> CreateOperation([FromBody] OperationRequest request)
+            // 2️⃣ Ejecutar operación crítica
+            PaymentResult result =
+                await _paymentService.ProcessPaymentAsync(request);
+
+            // 3️⃣ Manejo explícito de errores
+            if (!result.Success)
             {
-                _logger.LogInformation("Received operation request");
-
-                if (request == null ||
-                    string.IsNullOrWhiteSpace(request.OperationId) ||
-                    string.IsNullOrWhiteSpace(request.CustomerId) ||
-                    request.Amount <= 0)
+                return result.ErrorType switch
                 {
-                    _logger.LogWarning("Invalid operation request received");
-                    return BadRequest(new
+                    "TIMEOUT" => StatusCode(504, new
                     {
-                        error = "Invalid request data"
-                    });
-                }
-
-                try
-                {
-                    //Simular operación crítica
-                    await _paymentService.ProcessPaymentAsync(
-                        request
-                    );
-
-                    return Ok(new
-                    {
-                        operationId = request.OperationId,
-                        status = "SUCCESS"
-                    });
-                }
-                catch (Exception)
-                {
-                    return StatusCode(500, new
-                    {
+                        customerId = request.CustomerId,
                         operationId = request.OperationId,
                         status = "FAILED",
-                        message = "The operation could not be completed at this time"
-                    });
-                }
+                        errorType = result.ErrorType,
+                        message = result.Message
+                    }),
+
+                    "LEGACY_ERROR" => StatusCode(424, new
+                    {
+                        customerId = request.CustomerId,
+                        operationId = request.OperationId,
+                        status = "FAILED",
+                        errorType = result.ErrorType,
+                        message = result.Message
+                    }),
+
+                    "LEGACY_UNAVAILABLE" => StatusCode(503, new
+                    {
+                        customerId = request.CustomerId,
+                        operationId = request.OperationId,
+                        status = "FAILED",
+                        errorType = result.ErrorType,
+                        message = result.Message
+                    }),
+
+                    "PAYMENT_REJECTED" => BadRequest(new
+                    {
+                        customerId = request.CustomerId,
+                        operationId = request.OperationId,
+                        status = "FAILED",
+                        errorType = result.ErrorType,
+                        message = result.Message
+                    }),
+
+                    _ => StatusCode(500, new
+                    {
+                        customerId = request.CustomerId,
+                        operationId = request.OperationId,
+                        status = "FAILED",
+                        errorType = result.ErrorType,
+                        message = result.Message
+                    })
+                };
             }
+
+            // 4️⃣ Éxito
+            return Ok(new
+            {
+                operationId = request.OperationId,
+                status = "SUCCESS"
+            });
         }
     }
-
 }
